@@ -39,7 +39,7 @@ cat > route53.yml <<EOF
      region: "{{REGION}}"
      filters:
       instance-state-name: running
-      "tag:Name": {{ec2_tag_value}}
+      "tag:Name": "{{ec2_tag_value}}"
     register: ec2_remote_facts
 
   - set_fact: public_ip="{{public_ip|default([])+[item.public_ip_address]}}"
