@@ -49,12 +49,12 @@ then
   aws ec2 create-tags \
     --region ${region} \
     --resources ${instanceID} \
-    --tags Key=Name,Value=${stackName}-ServerRally
+    --tags Key=Name,Value=Couchbase-${stackName}-ServerRally
 else
   aws ec2 create-tags \
     --region ${region} \
     --resources ${instanceID} \
-    --tags Key=Name,Value=${stackName}-Server
+    --tags Key=Name,Value=Couchbase-${stackName}-Server
 fi
 
 cd /opt/couchbase/bin/
