@@ -53,9 +53,6 @@ aws --region $region route53 change-resource-record-sets --hosted-zone-id $zone_
 
 aws --region $region route53 list-resource-record-sets --hosted-zone-id $zone_id --query "ResourceRecordSets[?Name == '${rec_name}.']"
 aws --region $region ec2 describe-instances --filters "Name=tag:${ec2_tag_key},Values=${ec2_tag_value}" "Name=network-interface.addresses.private-ip-address,Values=*" --query 'Reservations[*].Instances[*].{InstanceId:InstanceId,PrivateDnsName:PrivateDnsName,State:State.Name, IP:NetworkInterfaces[0].PrivateIpAddress}'|grep -w IP|awk '{print $2}'|tr -d ','|tr -d '"' > ip_list
-echo "172.31.17.41" >> ip_list
-echo "172.31.17.43" >> ip_list
-echo "172.31.17.44" >> ip_list
 
 ip_count=$(wc -l ip_list|awk '{print $1}')
 if [ "$ip_count" == "0" ];then
