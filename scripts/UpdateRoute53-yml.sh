@@ -28,7 +28,9 @@ region=ap-south-1
 zone_name=glp-test.com
 rec_name=test.glp-test.com
 ec2_tag_key=Name
-ec2_tag_value=Couchbase-${stackName}-Server
+ec2_tag_value=Couchbase-${stackName}-ServerRally
+#ec2_tag_value=Couchbase-${stackName}-Server
+
 
 echo "-----------------------"
 echo -e "zone_name=$zone_id \nRegion=$region \nRecorName=$rec_name \nec2_tag_key=$ec2_tag_key \nec2_tag_value=$ec2_tag_value\nzone_id=$zone_id \nstackName=$stackName"
