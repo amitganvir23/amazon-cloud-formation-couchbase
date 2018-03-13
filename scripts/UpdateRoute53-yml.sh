@@ -30,6 +30,10 @@ rec_name=test.glp-test.com
 ec2_tag_key=Name
 ec2_tag_value=Couchbase-${stackName}-Server
 
+echo "-----------------------"
+echo -e "zone_name=$zone_id \nRegion=$region \nRecorName=$rec_name \nec2_tag_key=$ec2_tag_key \nec2_tag_value=$ec2_tag_value\nzone_id=$zone_id \nstackName=$stackName"
+echo "-----------------------"
+
 cat > route53.yml <<EOF
 ---
 - hosts: localhost
@@ -62,4 +66,4 @@ cat > route53.yml <<EOF
      ttl: 30
      value: "{{private_ip}}"
 EOF
-ansible-playbook route53.yml
+ansible-playbook route53.yml -vv
