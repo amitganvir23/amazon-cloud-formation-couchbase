@@ -15,6 +15,9 @@ ec2_tag_value=Couchbase-${stackName}-Server
 zone_id=$(aws route53 list-hosted-zones|grep -B 1 $zone_name|grep "Id"|head -n 1|awk '{print $2}'|cut -d '/' -f 3|tr -d '"'|tr -d ',')
 zone_id=$zone_id
 
+echo "-----------------------"
+echo -e "Zone_name=$zone_id \nRegion=$region \nRecorName=$rec_name \nec2_tag_key=$ec2_tag_key \nec2_tag_value=$ec2_tag_value\nzone_id=$zone_id"
+echo "-----------------------"
 
 c1()
 {
@@ -53,6 +56,7 @@ aws --region $region route53 change-resource-record-sets --hosted-zone-id $zone_
 
 aws --region $region route53 list-resource-record-sets --hosted-zone-id $zone_id --query "ResourceRecordSets[?Name == '${rec_name}.']"
 aws --region $region ec2 describe-instances --filters "Name=tag:${ec2_tag_key},Values=${ec2_tag_value}" "Name=network-interface.addresses.private-ip-address,Values=*" --query 'Reservations[*].Instances[*].{InstanceId:InstanceId,PrivateDnsName:PrivateDnsName,State:State.Name, IP:NetworkInterfaces[0].PrivateIpAddress}'|grep -w IP|awk '{print $2}'|tr -d ','|tr -d '"' > ip_list
+echo "Adding below IPs:";cat ip_list;echo
 
 ip_count=$(wc -l ip_list|awk '{print $1}')
 if [ "$ip_count" == "0" ];then
