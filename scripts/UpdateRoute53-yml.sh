@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "Running UpdateRoute53.sh"
-sleep 3
+sleep 2
 stackName=$1
 
 yum install epel-release -y
