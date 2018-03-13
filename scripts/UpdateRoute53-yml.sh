@@ -4,7 +4,7 @@ echo "Running UpdateRoute53.sh"
 
 stackName=$1
 
-yum install –y epel-release
+yum install epel-release -y
 curl -O https://bootstrap.pypa.io/get-pip.py
 export PATH=~/.local/bin:$PATH
 python get-pip.py --user
