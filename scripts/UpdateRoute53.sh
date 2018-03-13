@@ -1,3 +1,4 @@
+#cloud-boothook
 #!/bin/bash
 
 echo "Running UpdateRoute53.sh"
