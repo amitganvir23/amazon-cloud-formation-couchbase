@@ -1,7 +1,6 @@
 #!/bin/bash
 
 echo "Running UpdateRoute53.sh"
-sleep 2
 stackName=$1
 
 yum install epel-release -y
@@ -15,15 +14,6 @@ yum install ansible --enablerepo=epel -y
 
 echo stackName \'$stackName\'
 
-
-
-if [ $( grep -cw ansible_connection /etc/ansible/hosts) -eq "0" ];then
-cat >>/etc/ansible/hosts <<EOF
-[localhost]
-localhost ansible_connection=local ansible_python_interpreter=python
-EOF
-fi
-
 region=ap-south-1
 zone_name=glp-test.com
 rec_name=test.glp-test.com
@@ -31,7 +21,12 @@ ec2_tag_key=Name
 #ec2_tag_value=Couchbase-${stackName}-ServerRally
 #ec2_tag_value=Couchbase-${stackName}-Server
 ec2_tag_value=Couchbase-Cluster-${stackName}
+my_inventory=myhosts
 
+cat > $my_inventory <<EOF
+[localhost]
+localhost ansible_connection=local ansible_python_interpreter=python
+EOF
 
 echo "-----------------------"
 echo -e "zone_name=$zone_name \nRegion=$region \nRecorName=$rec_name \nec2_tag_key=$ec2_tag_key \nec2_tag_value=$ec2_tag_value\nzone_id=$zone_id \nstackName=$stackName"
@@ -69,4 +64,4 @@ cat > route53.yml <<EOF
      ttl: 30
      value: "{{private_ip}}"
 EOF
-ansible-playbook route53.yml -vv
+ansible-playbook -i $my_inventory route53.yml -vv
