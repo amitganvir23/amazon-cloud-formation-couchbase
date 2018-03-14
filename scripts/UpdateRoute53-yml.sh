@@ -17,10 +17,13 @@ echo stackName \'$stackName\'
 region=ap-south-1
 zone_name=glp-test.com
 rec_name=test.glp-test.com
-ec2_tag_key=Name
+#ec2_tag_key=Name
 #ec2_tag_value=Couchbase-${stackName}-ServerRally
 #ec2_tag_value=Couchbase-${stackName}-Server
-ec2_tag_value=Couchbase-Cluster-${stackName}
+
+ec2_tag_key=Couchbase-Cluster
+ec2_tag_value=${stackName}
+
 my_inventory=myhosts
 
 cat > $my_inventory <<EOF
@@ -47,7 +50,8 @@ cat > route53.yml <<EOF
      region: "{{REGION}}"
      filters:
       instance-state-name: running
-      "tag:Name": "{{ec2_tag_value}}"
+#      "tag:Name": "{{ec2_tag_value}}"
+      "tag:Couchbase-Cluster": "{{ec2_tag_value}}"
     register: ec2_remote_facts
 
   - set_fact: private_ip="{{private_ip|default([])+[item.private_ip_address]}}"
