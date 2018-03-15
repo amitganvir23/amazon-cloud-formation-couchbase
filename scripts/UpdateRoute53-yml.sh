@@ -14,7 +14,7 @@ yum install ansible --enablerepo=epel -y
 
 echo stackName \'$stackName\'
 
-region=ap-south-1
+region=$2
 zone_name=glp-test.com
 rec_name=test.glp-test.com
 #ec2_tag_key=Name
@@ -46,26 +46,20 @@ cat > route53.yml <<EOF
        - ec2_tag_value: ${ec2_tag_value}
 
   tasks:
-  - ec2_remote_facts:
-     region: "{{REGION}}"
-     filters:
-      instance-state-name: running
-#      "tag:Name": "{{ec2_tag_value}}"
-      "tag:Couchbase-Cluster": "{{ec2_tag_value}}"
-    register: ec2_remote_facts
+   - name: Collecting Private IP address
+     shell: "aws --region {{REGION}} ec2 describe-instances --filters \"Name=tag:{{ec2_tag_key}},Values={{ec2_tag_value}}\" \"Name=network-interface.addresses.private-ip-address,Values=*\" --query 'Reservations[*].Instances[*].{InstanceId:InstanceId,PrivateDnsName:PrivateDnsName,State:State.Name, IP:NetworkInterfaces[0].PrivateIpAddress}'|grep -w IP|awk '{print $2}'|tr -d ','|tr -d '\"'"
+     register: private_ips
 
-  - set_fact: private_ip="{{private_ip|default([])+[item.private_ip_address]}}"
-    with_items: "{{ ec2_remote_facts.instances }}"
+   - name: Updatading route 53
+     route53:
+      state: present
+      overwrite: true
+      private_zone: true
+      zone: "{{zone_name}}"
+      record: "{{rec_name}}"
+      type: A
+      ttl: 30
+      value: "{{private_ips.stdout_lines}}"
 
-  - name: Updatading route 53
-    route53:
-     state: present
-     overwrite: true
-     private_zone: true
-     zone: "{{zone_name}}"
-     record: "{{rec_name}}"
-     type: A
-     ttl: 30
-     value: "{{private_ip}}"
 EOF
 ansible-playbook -i $my_inventory route53.yml -vv
