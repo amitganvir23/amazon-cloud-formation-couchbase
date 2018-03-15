@@ -47,8 +47,11 @@ cat > route53.yml <<EOF
 
   tasks:
    - name: Collecting Private IP address
-     shell: "aws --region {{REGION}} ec2 describe-instances --filters \"Name=tag:{{ec2_tag_key}},Values={{ec2_tag_value}}\" \"Name=network-interface.addresses.private-ip-address,Values=*\" --query 'Reservations[*].Instances[*].{InstanceId:InstanceId,PrivateDnsName:PrivateDnsName,State:State.Name, IP:NetworkInterfaces[0].PrivateIpAddress}'|grep -w IP|awk '{print $2}'|tr -d ','|tr -d '\"'"
+     shell: "aws --region {{REGION}} ec2 describe-instances --filters \"Name=tag:{{ec2_tag_key}},Values={{ec2_tag_value}}\" \"Name=network-interface.addresses.private-ip-address,Values=*\" --query 'Reservations[*].Instances[*].{InstanceId:InstanceId,PrivateDnsName:PrivateDnsName,State:State.Name, IP:NetworkInterfaces[0].PrivateIpAddress}'|grep -w IP|awk '{print \$2}'|tr -d ','|tr -d '\"'"
      register: private_ips
+     
+   - set_fact: private_ip="{{private_ip|default([])+[item]}}"
+     with_items: "{{ private_ips.stdout_lines }}"
 
    - name: Updatading route 53
      route53:
@@ -59,7 +62,7 @@ cat > route53.yml <<EOF
       record: "{{rec_name}}"
       type: A
       ttl: 30
-      value: "{{private_ips.stdout_lines}}"
+      value: "{{private_ip}}"
 
 EOF
 ansible-playbook -i $my_inventory route53.yml -vv
