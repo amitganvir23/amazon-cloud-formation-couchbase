@@ -14,7 +14,7 @@ yum install ansible --enablerepo=epel -y
 
 echo stackName \'$stackName\'
 
-region=$2
+region=us-west-1
 zone_name=glp-test.com
 rec_name=test.glp-test.com
 #ec2_tag_key=Name
