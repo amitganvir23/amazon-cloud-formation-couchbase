@@ -311,7 +311,6 @@ def generateServer(group, rallyAutoScalingGroup):
         command.append("./server.sh ${adminUsername} ${adminPassword} ${services} ${stackName} ${rallyAutoScalingGroup}\n")
         command.append("./cloudwatch-alarms.sh ${envVar} \n")
 	command.append("./UpdateRoute53-yml.sh ${stackName} ${region} ${zone_name} ${rec_name} ${ec2_tag_key} ${ec2_tag_value} > route53.log 2>&1\n")
-    else:
 
     if 'query' in group['services']:
         if 'query' in group['services']:
