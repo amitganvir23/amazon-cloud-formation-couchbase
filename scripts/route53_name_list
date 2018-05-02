@@ -1,3 +1,0 @@
-#REGION #NAMESPACE #ZONE_NAME #RECORD_NAME #EC2_TAG_KEY #EC2_TAG_VALUE
-us-west-2 glp-qa glp-test.com test5.glp-test.com Name glp-qa-eses-Server
-us-west-2 glp-qa glp-test.com test6.glp-test.com Name glp-qa-eses-ServerRally
