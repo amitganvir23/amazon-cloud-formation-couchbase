@@ -33,7 +33,7 @@ def main():
             },
             "Subnets": {
                "Type": "List<AWS::EC2::Subnet::Id>",
-               "Description": "The list of SubnetIds in your Virtual Private Cloud (VPC)",
+               "Description": "The list of PRIVATE SubnetIds in your Virtual Private Cloud (VPC)",
                "ConstraintDescription": "must be a list of at least two existing subnets associated with at least two different availability zones. They should be residing in the selected Virtual Private Cloud."
             },
             "CidrIpVPC": {
@@ -46,6 +46,12 @@ def main():
               "Type": "String",
               "Default": "BYOL",
               "ConstraintDescription": "Select BYOL only for GLP as these are pre baked images"
+            },
+            "Env": {
+              "Description": "Pre-prod or Non-prod",
+              "Type": "String",
+              "Default": "Non-prod",
+              "ConstraintDescription": "Select this option only UAT and Stage"
             }
         },
         "Mappings": {},
@@ -88,7 +94,7 @@ def generateMappings(serverVersion):
                 "us-east-1": { "BYOL": "ami-a693a3dc", "HourlyPricing": "ami-ef95a595" },
                 "us-east-2": { "BYOL": "ami-d97441bc", "HourlyPricing": "ami-62764307" },
                 "us-west-1": { "BYOL": "ami-cf8c81af", "HourlyPricing": "ami-c08c81a0" },
-                "us-west-2": { "BYOL": "ami-269c235e", "HourlyPricing": "ami-49a11e31" },
+                "us-west-2": { "BYOL": "ami-2c8aea54", "HourlyPricing": "ami-49a11e31" },
                 "ca-central-1": { "BYOL": "ami-9822a7fc", "HourlyPricing": "ami-2e22a74a" },
                 "eu-central-1": { "BYOL": "ami-8438a1eb", "HourlyPricing": "ami-9939a0f6" },
                 "eu-west-1": { "BYOL": "ami-078aed7e", "HourlyPricing": "ami-7797f00e" },
@@ -152,9 +158,16 @@ def generateMiscResources():
                         "Statement": [{
                             "Effect": "Allow",
                             "Action": [
-                                "ec2:CreateTags",
-                                "ec2:Describe*",
-                                "autoscaling:DescribeAutoScalingGroups"
+                                    "ec2:CreateTags",
+                                    "ec2:Describe*",
+                                    "autoscaling:DescribeAutoScalingGroups",
+                                    "cloudwatch:PutMetricData",
+                                    "cloudwatch:GetMetricStatistics",
+                                    "cloudwatch:ListMetrics",
+                                    "ec2:DescribeTags",
+                                    "autoscaling:DescribeAutoScalingGroups",
+                                    "cloudwatch:PutDashboard",
+                                    "cloudwatch:PutMetricAlarm"
                             ],
                             "Resource": "*"
                         }]
@@ -257,17 +270,19 @@ def generateServer(group, rallyAutoScalingGroup):
     nodeType = group['nodeType']
     dataDiskSize = group['dataDiskSize']
     services = group['services']
-
     servicesParameter=''
     for service in services:
         servicesParameter += service + ','
     servicesParameter=servicesParameter[:-1]
+
+    print('Using service: ' + servicesParameter)
 
     command = [
         "#!/bin/bash\n",
         "echo 'Running startup script...'\n",
         "echo 'Install aws-cli...'\n"
         "yum install -y aws-cli \n"
+        "envVar=", { "Ref": "Env" }, "\n"
         "adminUsername=", { "Ref": "Username" }, "\n",
         "adminPassword=", { "Ref": "Password" }, "\n",
         "services=" + servicesParameter + "\n",
@@ -275,15 +290,32 @@ def generateServer(group, rallyAutoScalingGroup):
         "baseURL=https://raw.githubusercontent.com/GloballogicPractices/amazon-cloud-formation-couchbase/master/scripts/\n",
         "wget ${baseURL}server.sh\n",
         "wget ${baseURL}util.sh\n",
+        "wget https://raw.githubusercontent.com/shamsk22/amazon-cloud-formation-couchbase/master/scripts/cloudwatch-alarms.sh\n",
+        "wget https://raw.githubusercontent.com/gargpallavi/amazon-cloud-formation-couchbase/master/scripts/cb-bucket.sh\n",
+        "wget https://raw.githubusercontent.com/amitganvir23/aws-route53-update/master/UpdateRoute53-yml.sh\n",
+        "region=", { "Ref": "AWS::Region" }, "\n",
+        "zone_name=glp-test.com\n",
+        "rec_name=test.glp-test.com\n",
+        "ec2_tag_key=Name\n",
+        "ec2_tag_value=Couchbase-${stackName}-Server*\n",
         "chmod +x *.sh\n",
     ]
     if groupName==rallyAutoScalingGroup:
-        command.append("./server.sh ${adminUsername} ${adminPassword} ${services} ${stackName}\n")
+        command.append("./server.sh ${adminUsername} ${adminPassword} ${services} ${stackName} \n")
+        command.append("./cloudwatch-alarms.sh ${envVar} \n")
+	command.append("./UpdateRoute53-yml.sh ${stackName} ${region} ${zone_name} ${rec_name} ${ec2_tag_key} ${ec2_tag_value} > route53.log 2>&1\n")
     else:
         command.append("rallyAutoScalingGroup=")
         command.append({ "Ref": rallyAutoScalingGroup + "AutoScalingGroup" })
         command.append("\n")
         command.append("./server.sh ${adminUsername} ${adminPassword} ${services} ${stackName} ${rallyAutoScalingGroup}\n")
+        command.append("./cloudwatch-alarms.sh ${envVar} \n")
+	command.append("./UpdateRoute53-yml.sh ${stackName} ${region} ${zone_name} ${rec_name} ${ec2_tag_key} ${ec2_tag_value} > route53.log 2>&1\n")
+    else:
+
+    if 'query' in group['services']:
+        if 'query' in group['services']:
+            command.append("./cb-bucket.sh ${adminUsername} ${adminPassword} ${stackName} \n")
 
     resources = {
         groupName + "AutoScalingGroup": {
@@ -303,7 +335,7 @@ def generateServer(group, rallyAutoScalingGroup):
             "Properties": {
                 "ImageId": { "Fn::FindInMap": [ "CouchbaseServer", { "Ref": "AWS::Region" }, { "Ref": "License" } ] },
                 "InstanceType": nodeType,
-                "AssociatePublicIpAddress": True,
+                "AssociatePublicIpAddress": False,
                 "SecurityGroups": [ { "Ref": "CouchbaseSecurityGroup" } ],
                 "KeyName": { "Ref": "KeyName" },
                 "EbsOptimized": True,
