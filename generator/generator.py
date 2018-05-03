@@ -301,7 +301,7 @@ def generateServer(group, rallyAutoScalingGroup):
         "region=", { "Ref": "AWS::Region" }, "\n",
         "vpc_id=", { "Ref": "VpcId" }, "\n",
         "zone_name=glp-test3.com\n",
-        "rec_name=test1.glp-test3.com\n",
+        "rec_name=test1.${zone_name}\n",
         "ec2_tag_key=Name\n",
         "ec2_tag_value=${stackName}-Server*\n",
         "chmod +x *.sh\n",
