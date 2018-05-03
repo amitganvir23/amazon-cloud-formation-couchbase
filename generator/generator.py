@@ -102,7 +102,7 @@ def generateMappings(serverVersion):
                 "eu-west-3": { "BYOL": "ami-d5dd6ba8", "HourlyPricing": "ami-5bc77126" },
                 "ap-southeast-1": { "BYOL": "ami-33ec944f", "HourlyPricing": "ami-13eb936f" },
                 "ap-southeast-2": { "BYOL": "ami-8910eeeb", "HourlyPricing": "ami-ec11ef8e" },
-                "ap-south-1": { "BYOL": "aami-0d8ddc62", "HourlyPricing": "ami-5db1e032" },
+                "ap-south-1": { "BYOL": "ami-5c217f33", "HourlyPricing": "ami-5db1e032" },
                 "ap-northeast-1": { "BYOL": "ami-b0e489d6", "HourlyPricing": "ami-47e48921" },
                 "ap-northeast-2": { "BYOL": "ami-ec8d2e82", "HourlyPricing": "ami-e78c2f89" },
                 "sa-east-1": { "BYOL": "ami-995519f5", "HourlyPricing": "ami-f5551999" }
@@ -167,7 +167,12 @@ def generateMiscResources():
                                     "ec2:DescribeTags",
                                     "autoscaling:DescribeAutoScalingGroups",
                                     "cloudwatch:PutDashboard",
-                                    "cloudwatch:PutMetricAlarm"
+                                    "cloudwatch:PutMetricAlarm",
+                                    "route53:GetHostedZone",
+                                    "route53:CreateHostedZone",
+                                    "route53:ChangeResourceRecordSets",
+                                    "route53:List*",
+                                    "route53:ChangeResourceRecordSets"
                             ],
                             "Resource": "*"
                         }]
@@ -294,23 +299,24 @@ def generateServer(group, rallyAutoScalingGroup):
         "wget https://raw.githubusercontent.com/gargpallavi/amazon-cloud-formation-couchbase/master/scripts/cb-bucket.sh\n",
         "wget https://raw.githubusercontent.com/amitganvir23/aws-route53-update/master/UpdateRoute53-yml.sh\n",
         "region=", { "Ref": "AWS::Region" }, "\n",
-        "zone_name=glp-test.com\n",
-        "rec_name=test.glp-test.com\n",
+        "vpc_id=", { "Ref": "VpcId" }, "\n",
+        "zone_name=glp-test3.com\n",
+        "rec_name=test1.glp-test3.com\n",
         "ec2_tag_key=Name\n",
-        "ec2_tag_value=Couchbase-${stackName}-Server*\n",
+        "ec2_tag_value=${stackName}-Server*\n",
         "chmod +x *.sh\n",
     ]
     if groupName==rallyAutoScalingGroup:
         command.append("./server.sh ${adminUsername} ${adminPassword} ${services} ${stackName} \n")
         command.append("./cloudwatch-alarms.sh ${envVar} \n")
-	command.append("./UpdateRoute53-yml.sh ${stackName} ${region} ${zone_name} ${rec_name} ${ec2_tag_key} ${ec2_tag_value} > route53.log 2>&1\n")
+	command.append("./UpdateRoute53-yml.sh ${stackName} ${region} ${zone_name} ${rec_name} ${ec2_tag_key} ${ec2_tag_value} ${vpc_id} > route53.log 2>&1\n")
     else:
         command.append("rallyAutoScalingGroup=")
         command.append({ "Ref": rallyAutoScalingGroup + "AutoScalingGroup" })
         command.append("\n")
         command.append("./server.sh ${adminUsername} ${adminPassword} ${services} ${stackName} ${rallyAutoScalingGroup}\n")
         command.append("./cloudwatch-alarms.sh ${envVar} \n")
-	command.append("./UpdateRoute53-yml.sh ${stackName} ${region} ${zone_name} ${rec_name} ${ec2_tag_key} ${ec2_tag_value} > route53.log 2>&1\n")
+	command.append("./UpdateRoute53-yml.sh ${stackName} ${region} ${zone_name} ${rec_name} ${ec2_tag_key} ${ec2_tag_value} ${vpc_id} > route53.log 2>&1\n")
 
     if 'query' in group['services']:
         if 'query' in group['services']:
@@ -334,7 +340,7 @@ def generateServer(group, rallyAutoScalingGroup):
             "Properties": {
                 "ImageId": { "Fn::FindInMap": [ "CouchbaseServer", { "Ref": "AWS::Region" }, { "Ref": "License" } ] },
                 "InstanceType": nodeType,
-                "AssociatePublicIpAddress": False,
+                "AssociatePublicIpAddress": True,
                 "SecurityGroups": [ { "Ref": "CouchbaseSecurityGroup" } ],
                 "KeyName": { "Ref": "KeyName" },
                 "EbsOptimized": True,
